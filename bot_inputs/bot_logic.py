@@ -134,15 +134,3 @@ def save_screenshot(image, filename='screenshot.png'):
     except Exception as e:
         print(f"Error saving screenshot: {e}")
 
-
-def detect_image(self, image, name, threshold=0.8):
-    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    gray_template = cv2.cvtColor(self.images[name], cv2.COLOR_BGR2GRAY)
-
-    result = cv2.matchTemplate(gray_image, gray_template, cv2.TM_CCOEFF_NORMED)
-    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
-
-    if max_val >= threshold:
-        self.locations = max_loc
-        return True
-    return False

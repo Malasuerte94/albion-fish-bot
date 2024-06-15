@@ -3,17 +3,8 @@ import time
 
 import pyautogui
 from pywinauto import mouse
-import random
-from pywinauto.keyboard import send_keys
 from threading import Thread, Event
 from bot_inputs.bot_logic import focus_game_window, take_screenshot_region, take_screenshot, load_settings
-
-def press_space():
-    send_keys('{SPACE down}')
-    press_duration = random.uniform(0.1, 0.2)
-    print("Hit Space")
-    time.sleep(press_duration)
-    send_keys('{SPACE up}')
 
 
 class FishBot(Thread):
@@ -67,9 +58,6 @@ class FishBot(Thread):
 
         result = cv2.matchTemplate(gray_image, gray_template, cv2.TM_CCOEFF_NORMED)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
-
-        if max_val > 0.6:
-            print(max_val)
 
         # cv2.imshow('Result', result)
         # cv2.waitKey(0)

@@ -29,6 +29,8 @@ def start_fish_bot():
         fish_bot_running = True
         fish_bot = FishBot(selected_window.title)
         fish_bot.start()
+        if settings.get('hostile_detector', True):
+            start_hostile_detector()
     else:
         print("Please select a window.")
 
@@ -41,6 +43,7 @@ def stop_fish_bot():
         fish_bot.stop()
         fish_bot.join(timeout=1)
         fish_bot = None
+        stop_hostile_detector()
     else:
         print("Fish Bot is not running.")
 
