@@ -89,7 +89,7 @@ class HostileDetector(Thread):
         os.remove(temp_file_path)
 
     def detect_image(self, image, name, threshold=0.8):
-        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        gray_image = image
         gray_template = cv2.cvtColor(self.images[name], cv2.COLOR_BGR2GRAY)
 
         result = cv2.matchTemplate(gray_image, gray_template, cv2.TM_CCOEFF_NORMED)

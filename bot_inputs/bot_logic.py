@@ -55,6 +55,31 @@ def focus_game_window(window_title):
         print(f"Error occurred while getting window: {e}")
         return None
 
+def take_screenshot_region_detected(window, region, loc_detected):
+    # Calculate coordinates relative to the game window
+    x_loc_detected, y_loc_detected = loc_detected
+    left, top, width, height = window.left, window.top, window.width, window.height
+    region_left, region_top, region_width, region_height = region
+
+    # Calculate the center of the region
+    center_x = (left + x_loc_detected) - (region_width // 2)
+    center_y = (top + y_loc_detected) - (region_height // 2)
+
+    bbox = {
+        'left': center_x,
+        'top': center_y,
+        'width': region_width,
+        'height': region_height
+    }
+
+    with mss.mss() as sct:
+        screenshot = sct.grab(bbox)
+        img = np.array(screenshot)
+        gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # save_screenshot(resized_img)
+
+    return gray_image
+
 
 def take_screenshot_region(window, region):
     # Calculate coordinates relative to the game window
@@ -75,7 +100,7 @@ def take_screenshot_region(window, region):
     with mss.mss() as sct:
         screenshot = sct.grab(bbox)
         img = np.array(screenshot)
-        gray_image = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+        gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     # save_screenshot(resized_img)
 
     return gray_image
@@ -93,7 +118,7 @@ def take_screenshot(window):
     with mss.mss() as sct:
         screenshot = sct.grab(bbox)
         img = np.array(screenshot)
-        img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     return img
 

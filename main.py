@@ -27,7 +27,7 @@ def start_fish_bot():
     if selected_window and not fish_bot_running:
         window_dropdown.config(state="disabled")
         fish_bot_running = True
-        fish_bot = FishBot(selected_window.title)
+        fish_bot = FishBot(selected_window.title, img_label)
         fish_bot.start()
         if settings.get('hostile_detector', True):
             start_hostile_detector()
@@ -157,6 +157,9 @@ log_output.grid(row=2, column=0, columnspan=3, padx=10, pady=10, sticky='nsew')
 
 # Redirect print statements to the log output text widget
 sys.stdout = PrintRedirector(log_output)
+
+img_label = ttk.Label(fish_bot_tab)
+img_label.grid(row=1, column=2, rowspan=4, padx=10, pady=10)
 
 # Run the main loop
 root.mainloop()

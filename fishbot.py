@@ -4,23 +4,26 @@ import time
 import pyautogui
 from pywinauto import mouse
 from threading import Thread, Event
-from bot_inputs.bot_logic import focus_game_window, take_screenshot_region, take_screenshot, load_settings
-
+from bot_inputs.bot_logic import focus_game_window, take_screenshot_region_detected, take_screenshot, load_settings, take_screenshot_region
+from PIL import Image, ImageTk
+import numpy as np
 
 class FishBot(Thread):
-    def __init__(self, window_title):
+    def __init__(self, window_title, image_label):
         super().__init__()
         self.window_title = window_title
         self.stop_event = Event()
         self.game_window = focus_game_window(self.window_title)
         self.images = {
-            'floater': cv2.imread('images/floater.png'),
-            'idle': cv2.imread('images/idle.png'),
-            'detected': cv2.imread('images/detected.png'),
-            'detected1': cv2.imread('images/detected1.png'),
-            'caught': cv2.imread('images/caught.png')
+            'floater': cv2.cvtColor(cv2.imread('images/floater.png'), cv2.COLOR_BGR2GRAY),
+            'detected': cv2.cvtColor(cv2.imread('images/detected.png'), cv2.COLOR_BGR2GRAY),
+            'detected1': cv2.cvtColor(cv2.imread('images/detected1.png'), cv2.COLOR_BGR2GRAY),
+            'caught': cv2.cvtColor(cv2.imread('images/caught.png'), cv2.COLOR_BGR2GRAY)
         }
-        self.locations = {}
+        self.image_label = image_label
+        self.idle_floater_loc = None
+        self.detection_timeout = 30
+        self.fishing_region = None
 
     def run(self):
         if not self.game_window:
@@ -29,32 +32,58 @@ class FishBot(Thread):
 
         print("Running FishBot module...")
         settings = load_settings()
-        fishing_region = settings.get('fishing_region')
-        self.floater_throw(fishing_region)
+        self.fishing_region = settings.get('fishing_region')
+        
+        self.floater_throw()
         last_detection_time = time.time()
-        detection_timeout = 30
 
         while not self.stop_event.is_set():
-            screenshot = take_screenshot_region(self.game_window, fishing_region)
+            if self.is_floater_in_water():
+                print("-- Floater in water, start fishing --")
+                self.start_fishing(last_detection_time)
+                last_detection_time = time.time()  # Reset detection timer after starting fishing
+            else:
+                print("-- Floater not in water, throwing again --")
+                self.floater_throw()
+                last_detection_time = time.time()
+
+            if time.time() - last_detection_time > self.detection_timeout:
+                print("No action taken for 30 seconds, restarting...")
+                last_detection_time = time.time()
+                self.floater_throw()
+            
+            time.sleep(0.1)
+        
+    def start_fishing(self, start_time):
+        while True:
+            screenshot = take_screenshot_region_detected(self.game_window, self.fishing_region, self.idle_floater_loc)
+            self.update_screenshot_image(screenshot)
+            
             if self.detect_fish(screenshot):
                 print("-- Fish detected --")
                 self.catch_game()
                 time.sleep(2)
-                self.floater_throw(fishing_region)
-                last_detection_time = time.time()
-            else:
-                if time.time() - last_detection_time > detection_timeout:
-                    print("No fish detected for 30 seconds, restarting...")
-                    last_detection_time = time.time()
-                    self.floater_throw(fishing_region)
+                self.floater_throw()
+                return  # Exit the method after catching fish and throwing the floater again
+            
+            if not self.is_floater_in_water(screenshot):
+                print("Floater is out of the water, throwing again...")
+                self.floater_throw()
+                return  # Exit the method to re-throw the floater
+            
+            if time.time() - start_time > self.detection_timeout:
+                print("No fish detected for 30 seconds, restarting fishing process...")
+                self.floater_throw()
+                return  # Exit the method if no fish detected within timeout
+            
             time.sleep(0.1)
 
     def stop(self):
         self.stop_event.set()
 
     def detect_fish(self, image):
-        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        gray_template = cv2.cvtColor(self.images['detected1'], cv2.COLOR_BGR2GRAY)
+        gray_image = image
+        gray_template = self.images['detected1']
 
         result = cv2.matchTemplate(gray_image, gray_template, cv2.TM_CCOEFF_NORMED)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
@@ -63,15 +92,15 @@ class FishBot(Thread):
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
 
-        if max_val >= 0.75:
+        if max_val >= 0.70:
             return True
         return False
 
     def catch_game(self):
-        center_x = self.game_window.left + self.game_window.width // 2
-        pyautogui.click()
-        time.sleep(0.3)
         print('Catching..')
+        pyautogui.click()
+        center_x = self.game_window.left + self.game_window.width // 2
+        time.sleep(0.5)
         while True:
             ss = take_screenshot(self.game_window)
             floater_pos = self.detect_floater_game(ss)
@@ -94,32 +123,21 @@ class FishBot(Thread):
                 print("Floater disappeared.")
                 break  # Exit if the floater disappears
 
-    def detect_floater_game(self, image, threshold=0.8):
-        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        gray_template = cv2.cvtColor(self.images['caught'], cv2.COLOR_BGR2GRAY)
+    def detect_floater_game(self, image, threshold=0.7):
+        gray_image = image
+        gray_template = self.images['caught']
 
         result = cv2.matchTemplate(gray_image, gray_template, cv2.TM_CCOEFF_NORMED)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
 
+        print(max_val)
         if max_val >= threshold:
             return max_loc
         return None
 
-    def click_on_detected(self, item_name):
-        x, y = self.locations[item_name]
-        window_left, window_top = self.game_window.left, self.game_window.top
-        pyautogui.moveTo(window_left + x, window_top + y, 0.2)
-        mouse.click(button='right', coords=(window_left + x, window_top + y))
-        self.move_mouse_back()
 
-    def click_image(self, name, button):
-        window_left, window_top = self.game_window.left, self.game_window.top
-        x, y = self.locations[name]
-        click_pos = (window_left + x, window_top + y)
-        pyautogui.moveTo(click_pos, duration=0.1)
-        mouse.click(button=button, coords=click_pos)
-
-    def floater_throw(self, region):
+    def floater_throw(self):
+        region = self.fishing_region
         left = region[0] + self.game_window.left + (region[3] // 2)
         top = region[1] + self.game_window.top + (region[2] // 2)
 
@@ -130,11 +148,45 @@ class FishBot(Thread):
         # Move the mouse to the center of the game window
         pyautogui.moveTo(game_center_x, game_center_y, duration=0.2)
         pyautogui.mouseDown(button='left')
-        time.sleep(0.3)
+        time.sleep(0.1)
         pyautogui.mouseUp(button='left')
-        pyautogui.moveTo(game_center_x + 50, game_center_y - 50, duration=0.2)
+        pyautogui.moveTo(game_center_x + 50, game_center_y - 50, duration=0.2) 
+        time.sleep(2)
+        
+        
+    def is_floater_in_water(self, screenshot=None):
+        gray_image = screenshot if screenshot is not None else take_screenshot_region(self.game_window, self.fishing_region)
+        gray_template = self.images['floater']
+        
+        scales = np.linspace(0.5, 1.5, 20)
+        best_match = None
+        best_val = -np.inf
+        best_loc = None
+        
+        for scale in scales:
+            resized_template = cv2.resize(gray_template, (0, 0), fx=scale, fy=scale)
+            result = cv2.matchTemplate(gray_image, resized_template, cv2.TM_CCOEFF_NORMED)
+            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
+        
+            if max_val > best_val:
+                best_val = max_val
+                best_loc = max_loc
+                best_match = (max_loc, resized_template.shape[:2])
+        
+        if best_val > 0.7:
+            self.idle_floater_loc = best_loc
+            print(best_val)
+            return True
+        
+        return False
+        
 
     def move_mouse_back(self):
         game_center_x = self.game_window.left + self.game_window.width // 2
         game_center_y = self.game_window.top + self.game_window.height // 2
         pyautogui.moveTo(game_center_x // 2, game_center_y // 2, 0.2)
+    
+    def update_screenshot_image(self, image):
+        img = ImageTk.PhotoImage(image=Image.fromarray(image))
+        self.image_label.config(image=img)
+        self.image_label.image = img
