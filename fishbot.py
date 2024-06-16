@@ -151,7 +151,7 @@ class FishBot(Thread):
         # Move the mouse to the center of the game window
         pyautogui.moveTo(game_center_x, game_center_y, duration=0.2)
         pyautogui.mouseDown(button='left')
-        time.sleep(0.1)
+        time.sleep(0.25)
         pyautogui.mouseUp(button='left')
         pyautogui.moveTo(game_center_x + 50, game_center_y - 50, duration=0.2)
         self.idle_floater_loc = None
