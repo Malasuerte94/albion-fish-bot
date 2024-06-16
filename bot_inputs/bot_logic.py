@@ -55,6 +55,7 @@ def focus_game_window(window_title):
         print(f"Error occurred while getting window: {e}")
         return None
 
+
 def take_screenshot_region_detected(window, region, loc_detected):
     # Calculate coordinates relative to the game window
     x_loc_detected, y_loc_detected = loc_detected
@@ -62,8 +63,8 @@ def take_screenshot_region_detected(window, region, loc_detected):
     region_left, region_top, region_width, region_height = region
 
     # Calculate the center of the region
-    center_x = (left + x_loc_detected) - (region_width // 2)
-    center_y = (top + y_loc_detected) - (region_height // 2)
+    center_x = (left + x_loc_detected + region_left) - (region_width // 3)
+    center_y = (top + y_loc_detected + region_top) - (region_height // 3)
 
     bbox = {
         'left': center_x,
@@ -75,10 +76,9 @@ def take_screenshot_region_detected(window, region, loc_detected):
     with mss.mss() as sct:
         screenshot = sct.grab(bbox)
         img = np.array(screenshot)
-        gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    # save_screenshot(resized_img)
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
-    return gray_image
+    return img
 
 
 def take_screenshot_region(window, region):
@@ -100,10 +100,8 @@ def take_screenshot_region(window, region):
     with mss.mss() as sct:
         screenshot = sct.grab(bbox)
         img = np.array(screenshot)
-        gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    # save_screenshot(resized_img)
 
-    return gray_image
+    return img
 
 
 def take_screenshot(window):
@@ -118,7 +116,7 @@ def take_screenshot(window):
     with mss.mss() as sct:
         screenshot = sct.grab(bbox)
         img = np.array(screenshot)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
     return img
 
@@ -159,3 +157,26 @@ def save_screenshot(image, filename='screenshot.png'):
     except Exception as e:
         print(f"Error saving screenshot: {e}")
 
+
+def enhance_image(image):
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    # Define color range for the floater (tweak these values as needed)
+    lower_red = np.array([0, 50, 50])
+    upper_red = np.array([10, 255, 255])
+    mask1 = cv2.inRange(hsv_image, lower_red, upper_red)
+
+    lower_red = np.array([170, 50, 50])
+    upper_red = np.array([180, 255, 255])
+    mask2 = cv2.inRange(hsv_image, lower_red, upper_red)
+
+    # Combine masks to capture both red ranges
+    mask = mask1 + mask2
+
+    # Apply the mask to get the floater region
+    result = cv2.bitwise_and(image, image, mask=mask)
+
+    # Convert the result to grayscale
+    gray_result = cv2.cvtColor(result, cv2.COLOR_BGR2GRAY)
+
+    return gray_result

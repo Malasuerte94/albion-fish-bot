@@ -1,0 +1,26 @@
+<annotation>
+	<folder>active</folder>
+	<filename>Screenshot_3.png</filename>
+	<path>G:\WEB\abion-fishing-bot\tf_imgages\active\Screenshot_3.png</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>39</width>
+		<height>49</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>active</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>4</xmin>
+			<ymin>5</ymin>
+			<xmax>37</xmax>
+			<ymax>45</ymax>
+		</bndbox>
+	</object>
+</annotation>

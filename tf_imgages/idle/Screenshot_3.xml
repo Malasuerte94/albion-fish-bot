@@ -1,0 +1,26 @@
+<annotation>
+	<folder>idle</folder>
+	<filename>Screenshot_3.png</filename>
+	<path>G:\WEB\abion-fishing-bot\tf_imgages\idle\Screenshot_3.png</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>69</width>
+		<height>78</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>idle</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>21</xmin>
+			<ymin>7</ymin>
+			<xmax>53</xmax>
+			<ymax>64</ymax>
+		</bndbox>
+	</object>
+</annotation>
