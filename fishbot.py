@@ -60,46 +60,32 @@ class FishBot(Thread):
             screenshot = take_screenshot_region(self.game_window, self.fishing_region)
             self.update_screenshot_image(screenshot)
 
-            if self.detect_fish(screenshot):
-                print("-- Fish detected --")
-                self.catch_game()
-                time.sleep(2)
-                self.floater_throw()
-                return  # Exit the method after catching fish and throwing the floater again
-
-            if not self.is_floater_in_water():
+            # Check if the floater is in the water initially
+            if not self.is_floater_in_water(screenshot):
                 print("Floater is out of the water, throwing again...")
                 self.floater_throw()
                 return  # Exit the method to re-throw the floater
 
-            if time.time() - start_time > self.detection_timeout:
-                print("No fish detected for 30 seconds, restarting fishing process...")
-                self.floater_throw()
-                return  # Exit the method if no fish detected within timeout
+            # Monitor for the floater disappearing to detect fish pull
+            while self.is_floater_in_water(screenshot):
+                screenshot = take_screenshot_region(self.game_window, self.fishing_region)
+                self.update_screenshot_image(screenshot)
 
-            time.sleep(0.1)
+                # Timeout check
+                if time.time() - start_time > self.detection_timeout:
+                    print("No fish detected for 30 seconds, restarting fishing process...")
+                    self.floater_throw()
+                    return  # Exit the method if no fish detected within timeout
+
+            # If floater is not detected, a fish pull is detected
+            print("-- Fish detected --")
+            self.catch_game()
+            time.sleep(1)
+            self.floater_throw()
+            return  # Exit the method after catching fish and throwing the floater again
 
     def stop(self):
         self.stop_event.set()
-
-    def detect_fish(self, bgrSS):
-        enhancedGreySS = enhance_image(bgrSS)
-        detectedFloater = self.images['detected']
-
-        scales = np.linspace(0.8, 1.5, 7)
-        best_val = -np.inf
-
-        for scale in scales:
-            resized_template = cv2.resize(detectedFloater, (0, 0), fx=scale, fy=scale)
-            result = cv2.matchTemplate(enhancedGreySS, resized_template, cv2.TM_CCOEFF_NORMED)
-            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
-
-            if max_val > best_val:
-                best_val = max_val
-
-        if best_val > 0.70:
-            return True
-        return False
 
     def catch_game(self):
         print('Catching..')
