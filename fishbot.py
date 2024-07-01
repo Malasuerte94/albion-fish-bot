@@ -45,6 +45,7 @@ class FishBot(Thread):
                 last_detection_time = time.time()  # Reset detection timer after starting fishing
             else:
                 print("-- Floater NOT in water, throwing again --")
+                self.fishing_region = settings.get('fishing_region')
                 self.floater_throw()
                 last_detection_time = time.time()
 
@@ -53,7 +54,7 @@ class FishBot(Thread):
                 last_detection_time = time.time()
                 self.floater_throw()
 
-            time.sleep(0.1)
+            time.sleep(2)
 
     def start_fishing(self, start_time):
         while True:
@@ -61,13 +62,13 @@ class FishBot(Thread):
             self.update_screenshot_image(screenshot)
 
             # Check if the floater is in the water initially
-            if not self.is_floater_in_water(screenshot):
+            if not self.is_floater_in_water():
                 print("Floater is out of the water, throwing again...")
                 self.floater_throw()
                 return  # Exit the method to re-throw the floater
 
             # Monitor for the floater disappearing to detect fish pull
-            while self.is_floater_in_water(screenshot):
+            while self.is_floater_in_water():
                 screenshot = take_screenshot_region(self.game_window, self.fishing_region)
                 self.update_screenshot_image(screenshot)
 
@@ -89,7 +90,8 @@ class FishBot(Thread):
 
     def catch_game(self):
         print('Catching..')
-        pyautogui.click()
+        pyautogui.mouseDown(button='left')
+        pyautogui.mouseUp(button='left')
         center_x = self.game_window.left + self.game_window.width // 2
         time.sleep(0.2)
         while True:
@@ -106,11 +108,13 @@ class FishBot(Thread):
                     ss = take_screenshot(self.game_window)
                     floater_pos = self.detect_floater_game(ss)
                     if floater_pos is None:
+                        pyautogui.mouseUp(button='left')
                         break
                     floater_x = self.game_window.left + floater_pos[0]
                 pyautogui.mouseUp(button='left')
 
             if floater_pos is None:
+                time.sleep(2)
                 print("Floater disappeared.")
                 break  # Exit if the floater disappears
 
@@ -139,9 +143,10 @@ class FishBot(Thread):
         pyautogui.mouseDown(button='left')
         time.sleep(0.25)
         pyautogui.mouseUp(button='left')
-        pyautogui.moveTo(game_center_x + 50, game_center_y - 50, duration=0.2)
         self.idle_floater_loc = None
-        time.sleep(2)
+        pyautogui.moveTo(game_center_x, game_center_y, duration=0.2)
+        time.sleep(1)
+        
 
     def is_floater_in_water(self):
         bgrSS = take_screenshot_region(self.game_window, self.fishing_region)
@@ -166,11 +171,6 @@ class FishBot(Thread):
             return True
 
         return False
-
-    def move_mouse_back(self):
-        game_center_x = self.game_window.left + self.game_window.width // 2
-        game_center_y = self.game_window.top + self.game_window.height // 2
-        pyautogui.moveTo(game_center_x // 2, game_center_y // 2, 0.2)
 
     def update_screenshot_image(self, image):
         img = ImageTk.PhotoImage(image=Image.fromarray(image))
